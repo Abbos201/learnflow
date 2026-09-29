@@ -1,0 +1,91 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useMemo, useState, type FormEvent } from 'react';
+import { Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { saveCourse } from '@/app/admin/actions';
+import { useToast } from '@/components/ui/toast';
+import { Alert } from '@/components/ui';
+import { IMAGE_EXT, THUMB_BUCKET } from '@/lib/utils';
+import { validateImage } from '@/lib/utils/upload';
+import type { Course } from '@/types';
+
+export function CourseForm({ course }: { course?: Course }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const supabase = useMemo(() => createClient(), []);
+  const [title, setTitle] = useState(course?.title ?? '');
+  const [description, setDescription] = useState(course?.description ?? '');
+  const [published, setPublished] = useState(course?.published ?? false);
+  const [thumb, setThumb] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!title.trim()) return setError('Course title is required.');
+    if (thumb) {
+      const msg = validateImage(thumb);
+      if (msg) return setError(msg);
+    }
+    setBusy(true);
+    try {
+      let thumbnailUrl = course?.thumbnail_url ?? null;
+      if (thumb) {
+        const path = `${crypto.randomUUID()}.${IMAGE_EXT[thumb.type]}`;
+        const { error: upErr } = await supabase.storage.from(THUMB_BUCKET).upload(path, thumb, { contentType: thumb.type });
+        if (upErr) throw new Error('Thumbnail upload failed. Please try again.');
+        thumbnailUrl = supabase.storage.from(THUMB_BUCKET).getPublicUrl(path).data.publicUrl;
+      }
+      const res = await saveCourse({ id: course?.id, title, description, thumbnail_url: thumbnailUrl, published });
+      if (!res.ok) throw new Error(res.error ?? 'Could not save the course.');
+      toast('success', course ? 'Course updated.' : 'Course created.');
+      if (!course) router.push(`/admin/courses/${res.id}`);
+      router.refresh();
+      setThumb(null);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Network error. Please try again.';
+      setError(msg);
+      toast('error', msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="card space-y-4 p-5">
+      {error && <Alert tone="error">{error}</Alert>}
+      <div>
+        <label htmlFor="c-title" className="label">Course title</label>
+        <input id="c-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required disabled={busy} />
+      </div>
+      <div>
+        <label htmlFor="c-desc" className="label">Description</label>
+        <textarea id="c-desc" className="input min-h-[100px]" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={5000} disabled={busy} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="c-thumb" className="label">Thumbnail (JPG, PNG or WebP, max 5 MB)</label>
+          <input id="c-thumb" type="file" accept="image/jpeg,image/png,image/webp" className="input" onChange={(e) => setThumb(e.target.files?.[0] ?? null)} disabled={busy} />
+          {course?.thumbnail_url && !thumb && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={course.thumbnail_url} alt="Current thumbnail" className="mt-2 h-20 rounded-lg object-cover" />
+          )}
+        </div>
+        <div>
+          <label htmlFor="c-status" className="label">Status</label>
+          <select id="c-status" className="input" value={published ? 'published' : 'draft'} onChange={(e) => setPublished(e.target.value === 'published')} disabled={busy}>
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" className="btn btn-primary" disabled={busy}>
+        {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+        {course ? 'Save changes' : 'Create course'}
+      </button>
+    </form>
+  );
+}
