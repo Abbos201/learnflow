@@ -13,17 +13,42 @@ export default async function StudentDashboard() {
   const profile = await requireUser();
   const supabase = createClient();
 
-  const [{ data: courseRows }, { data: counts }, { data: summary }, { data: recent }] = await Promise.all([
-    supabase.from('courses').select('*').eq('published', true).order('created_at', { ascending: true }),
-    supabase.from('course_lesson_counts').select('course_id, published_lessons'),
-    supabase.from('course_progress_summary').select('course_id, completed_lessons').eq('user_id', profile.id),
-    supabase
-      .from('student_progress')
-      .select('lesson_id, course_id, progress_percentage, completed, last_watched_at, lessons(title), courses(title)')
-      .eq('user_id', profile.id)
-      .order('last_watched_at', { ascending: false })
-      .limit(5),
-  ]);
+const [
+  { data: courseRows, error: coursesError },
+  { data: counts, error: countsError },
+  { data: summary, error: summaryError },
+  { data: recent, error: recentError },
+] = await Promise.all([
+  supabase
+    .from('courses')
+    .select('*')
+    .eq('published', true)
+    .order('created_at', { ascending: true }),
+
+  supabase
+    .from('course_lesson_counts')
+    .select('course_id, published_lessons'),
+
+  supabase
+    .from('course_progress_summary')
+    .select('course_id, completed_lessons')
+    .eq('user_id', profile.id),
+
+  supabase
+    .from('student_progress')
+    .select(
+      'lesson_id, course_id, progress_percentage, completed, last_watched_at, lessons(title), courses(title)'
+    )
+    .eq('user_id', profile.id)
+    .order('last_watched_at', { ascending: false })
+    .limit(5),
+]);
+
+console.log('COURSES ERROR:', coursesError);
+console.log('COUNTS ERROR:', countsError);
+console.log('SUMMARY ERROR:', summaryError);
+console.log('RECENT ERROR:', recentError);
+console.log('COURSES DATA:', courseRows);
 
   const courses = (courseRows ?? []) as Course[];
   const total = new Map<string, number>((counts ?? []).map((c: { course_id: string; published_lessons: number }) => [c.course_id, c.published_lessons]));

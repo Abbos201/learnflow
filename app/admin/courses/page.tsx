@@ -17,7 +17,7 @@ export default async function AdminCourses() {
 
   return (
     <div>
-      <PageHeader title="Courses" actions={<Link href="/admin/courses/new" className="btn btn-primary"><Plus className="h-4 w-4" /> Add Course</Link>} />
+      <PageHeader title="Courses" actions={<Link href="/admin/courses/new" className="btn btn-primary"><Plus className="h-4 w-4" />Yangi mavzu qoshish</Link>} />
       {courses.length === 0 ? (
         <EmptyState icon={BookOpen} title="No courses yet" text="Create your first course, then add lessons to it." action={<Link href="/admin/courses/new" className="btn btn-primary">Add Course</Link>} />
       ) : (
@@ -29,7 +29,7 @@ export default async function AdminCourses() {
                 <Badge tone={c.published ? 'green' : 'amber'}>{c.published ? 'Published' : 'Draft'}</Badge>
               </div>
               {c.description && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{c.description}</p>}
-              <p className="mt-3 text-sm text-slate-500">{total.get(c.id) ?? 0} lessons</p>
+              <p className="mt-3 text-sm text-slate-500">{total.get(c.id) ?? 0} Video</p>
             </Link>
           ))}
         </div>

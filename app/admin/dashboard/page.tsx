@@ -24,9 +24,9 @@ export default async function AdminDashboard() {
         title="Dashboard"
         actions={
           <>
-            <Link href="/admin/courses/new" className="btn btn-primary"><Plus className="h-4 w-4" /> Add Course</Link>
-            <Link href="/admin/courses" className="btn btn-secondary"><Video className="h-4 w-4" /> Add Lesson</Link>
-            <Link href="/admin/students" className="btn btn-secondary"><Users className="h-4 w-4" /> Manage Students</Link>
+            <Link href="/admin/courses/new" className="btn btn-primary"><Plus className="h-4 w-4" />Yangi mavzu qo'shish</Link>
+            <Link href="/admin/courses" className="btn btn-secondary"><Video className="h-4 w-4" /> Yangi video qoshish</Link>
+            <Link href="/admin/students" className="btn btn-secondary"><Users className="h-4 w-4" /> O'quvchilar</Link>
           </>
         }
       />
@@ -37,9 +37,9 @@ export default async function AdminDashboard() {
         <StatCard label="Completed lessons" value={completed} icon={CheckCircle2} />
       </div>
 
-      <h2 className="mb-3 mt-8 text-lg font-semibold">Recently uploaded lessons</h2>
+      <h2 className="mb-3 mt-8 text-lg font-semibold">Yaqinda yuklangan dars</h2>
       {!recent.data || recent.data.length === 0 ? (
-        <div className="card p-6 text-sm text-slate-600">No lessons yet. Create a course, then add your first lesson.</div>
+        <div className="card p-6 text-sm text-slate-600">Hali mavjud emas</div>
       ) : (
         <ul className="card divide-y divide-slate-100">
           {recent.data.map((l: any) => (
@@ -49,7 +49,7 @@ export default async function AdminDashboard() {
                   <div className="font-medium">{l.title}</div>
                   <div className="text-xs text-slate-500">{l.courses?.title}</div>
                 </div>
-                <span className="text-sm text-slate-600">uploaded {relativeDay(l.created_at)}</span>
+                <span className="text-sm text-slate-600">Yuklandi {relativeDay(l.created_at)}</span>
               </Link>
             </li>
           ))}

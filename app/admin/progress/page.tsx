@@ -30,7 +30,7 @@ export default async function AdminProgress() {
         <div className="card overflow-x-auto">
           <table className="w-full min-w-[760px] text-sm">
             <thead className="border-b border-slate-200 text-left text-slate-500">
-              <tr><th className="px-4 py-3 font-medium">Student</th><th className="px-4 py-3 font-medium">Email</th><th className="px-4 py-3 font-medium">Course</th><th className="px-4 py-3 font-medium">Lessons</th><th className="px-4 py-3 font-medium">Overall</th><th className="px-4 py-3 font-medium">Last activity</th></tr>
+              <tr><th className="px-4 py-3 font-medium">O'quvchi</th><th className="px-4 py-3 font-medium">Email</th><th className="px-4 py-3 font-medium">Course</th><th className="px-4 py-3 font-medium">Lessons</th><th className="px-4 py-3 font-medium">Overall</th><th className="px-4 py-3 font-medium">Last activity</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {list.map((r) => {
