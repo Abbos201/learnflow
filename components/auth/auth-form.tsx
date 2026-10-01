@@ -184,7 +184,7 @@ export function AuthForm({
           Foydalanuvchi nomi
         </label>
 
-        @@<input
+        <input
           id="username"
           name="username"
           className="input"
