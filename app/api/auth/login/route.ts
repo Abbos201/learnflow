@@ -1,51 +1,45 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export async function POST(request: Request) {
-  try {
-    const body = await request.json();
+try {
+const body = await request.json();
 
-    const identifier = String(body.identifier ?? '').trim();
-    const password = String(body.password ?? '');
 
-    if (!identifier || !password) {
-      return NextResponse.json(
-        { error: 'Username/email va password tog`ri emas.' },
-        { status: 400 }
-      );
-    }
+const identifier = String(body.identifier ?? '')
+  .trim()
+  .toLowerCase();
 
-    let email = identifier;
+const password = String(body.password ?? '');
 
-    // If the user entered a username,
-    // resolve username -> email on the server.
-    if (!identifier.includes('@')) {
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .select('email')
-        .ilike('username', identifier)
-        .maybeSingle();
+if (!identifier || !password) {
+  return NextResponse.json(
+    { error: 'Foydalanuvchi nomi va parolni kiriting.' },
+    { status: 400 }
+  );
+}
 
-      if (error || !data?.email) {
-        return NextResponse.json(
-          { error: 'Invalid username/email or password.' },
-          { status: 401 }
-        );
-      }
+// @ belgisi bo‘lsa olib tashlaymiz.
+const username = identifier.startsWith('@')
+  ? identifier.slice(1)
+  : identifier;
 
-      email = data.email;
-    }
+if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+  return NextResponse.json(
+    { error: 'Foydalanuvchi nomi noto‘g‘ri.' },
+    { status: 400 }
+  );
+}
 
-    return NextResponse.json({ email });
-  } catch {
-    return NextResponse.json(
-      { error: 'Invalid request.' },
-      { status: 400 }
-    );
-  }
+// Username orqali texnik email hosil qilinadi.
+const email = `${username}@users.learnflow.local`;
+
+return NextResponse.json({ email });
+
+
+} catch {
+return NextResponse.json(
+{ error: 'So‘rovni bajarib bo‘lmadi.' },
+{ status: 400 }
+);
+}
 }

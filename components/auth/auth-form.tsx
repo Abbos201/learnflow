@@ -34,7 +34,7 @@ export function AuthForm({
     const form = new FormData(e.currentTarget);
 
     let username = String(form.get('username') ?? '')
-      .trim()
+      .trim() 
       .toLowerCase();
 
     // Username boshiga @ avtomatik qo‘shiladi.
@@ -184,7 +184,7 @@ export function AuthForm({
           Foydalanuvchi nomi
         </label>
 
-        <input
+        @@<input
           id="username"
           name="username"
           className="input"
@@ -197,7 +197,6 @@ export function AuthForm({
 
         <p className="mt-1 text-xs text-slate-500">
           3–30 ta belgi: harflar, raqamlar va pastki chiziq (_).
-          @ belgisi avtomatik qo‘shiladi.
         </p>
       </div>
 
