@@ -2,18 +2,43 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Activity } from 'lucide-react';
-import { Badge, EmptyState, PageHeader, ProgressBar } from '@/components/ui';
-import { relativeDay } from '@/lib/utils';
+import {
+Badge,
+EmptyState,
+PageHeader,
+ProgressBar,
+} from '@/components/ui';
+
 import type { Course, Lesson, Profile, Progress } from '@/types';
 
 export const dynamic = 'force-dynamic';
+
+function formatUzbekDateTime(value: string | null | undefined) {
+if (!value) return 'Ma’lumot yo‘q';
+
+const date = new Date(value);
+
+if (Number.isNaN(date.getTime())) {
+return 'Ma’lumot yo‘q';
+}
+
+return new Intl.DateTimeFormat('uz-UZ', {
+timeZone: 'Asia/Tashkent',
+day: '2-digit',
+month: '2-digit',
+year: 'numeric',
+hour: '2-digit',
+minute: '2-digit',
+hour12: false,
+}).format(date);
+}
 
 export default async function AdminStudentDetail({
 params,
 }: {
 params: { studentId: string };
 }) {
-const supabase = createClient();
+const supabase = await createClient();
 
 const { data: p } = await supabase
 .from('profiles')
@@ -32,24 +57,31 @@ const { data: progressRows } = await supabase
 .limit(1000);
 
 const progress = (progressRows ?? []) as Progress[];
-const courseIds = Array.from(new Set(progress.map((r) => r.course_id)));
+
+const courseIds = Array.from(
+new Set(progress.map((r) => r.course_id))
+);
 
 let courses: Course[] = [];
 let lessons: Lesson[] = [];
 
 if (courseIds.length) {
 const [c, l] = await Promise.all([
-supabase.from('courses').select('*').in('id', courseIds),
 supabase
-.from('lessons')
+.from('courses')
 .select('*')
-.in('course_id', courseIds)
-.eq('published', true)
-.order('lesson_order')
-.order('created_at')
-.order('id'),
-]);
+.in('id', courseIds),
 
+
+  supabase
+    .from('lessons')
+    .select('*')
+    .in('course_id', courseIds)
+    .eq('published', true)
+    .order('lesson_order')
+    .order('created_at')
+    .order('id'),
+]);
 
 courses = (c.data ?? []) as Course[];
 lessons = (l.data ?? []) as Lesson[];
@@ -57,7 +89,9 @@ lessons = (l.data ?? []) as Lesson[];
 
 }
 
-const byLesson = new Map(progress.map((r) => [r.lesson_id, r]));
+const byLesson = new Map(
+progress.map((r) => [r.lesson_id, r])
+);
 
 return ( <div className="max-w-4xl"> <Link
      href="/admin/students"
@@ -65,10 +99,10 @@ return ( <div className="max-w-4xl"> <Link
    >
 Barcha o‘quvchilar </Link>
 
-```
+
   <PageHeader
     title={profile.full_name || 'Ismi ko‘rsatilmagan o‘quvchi'}
-    subtitle={`${profile.email} · Ro‘yxatdan o‘tgan: ${relativeDay(profile.created_at)}`}
+    subtitle={`${profile.email} · Ro‘yxatdan o‘tgan: ${formatUzbekDateTime(profile.created_at)}`}
   />
 
   {courses.length === 0 ? (
@@ -79,9 +113,17 @@ Barcha o‘quvchilar </Link>
     />
   ) : (
     courses.map((course) => {
-      const cl = lessons.filter((l) => l.course_id === course.id);
-      const done = cl.filter((l) => byLesson.get(l.id)?.completed).length;
-      const pct = cl.length ? Math.round((done / cl.length) * 100) : 0;
+      const cl = lessons.filter(
+        (l) => l.course_id === course.id
+      );
+
+      const done = cl.filter(
+        (l) => byLesson.get(l.id)?.completed
+      ).length;
+
+      const pct = cl.length
+        ? Math.round((done / cl.length) * 100)
+        : 0;
 
       return (
         <section
@@ -90,23 +132,36 @@ Barcha o‘quvchilar </Link>
         >
           <div className="border-b border-slate-100 p-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold">{course.title}</h2>
+              <h2 className="font-semibold">
+                {course.title}
+              </h2>
 
               <span className="text-sm text-slate-600">
                 {done} / {cl.length} ta video · {pct}%
               </span>
             </div>
 
-            <ProgressBar value={pct} className="mt-2" />
+            <ProgressBar
+              value={pct}
+              className="mt-2"
+            />
           </div>
 
           <table className="w-full min-w-[520px] text-sm">
             <thead className="text-left text-slate-500">
               <tr>
-                <th className="px-4 py-2 font-medium">Video</th>
-                <th className="px-4 py-2 font-medium">O‘zlashtirish</th>
-                <th className="px-4 py-2 font-medium">Holati</th>
-                <th className="px-4 py-2 font-medium">Oxirgi ko‘rilgan vaqt</th>
+                <th className="px-4 py-2 font-medium">
+                  Video
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  O‘zlashtirish
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  Holati
+                </th>
+                <th className="px-4 py-2 font-medium">
+                  Oxirgi ko‘rilgan vaqt
+                </th>
               </tr>
             </thead>
 
@@ -121,21 +176,34 @@ Barcha o‘quvchilar </Link>
                     </td>
 
                     <td className="px-4 py-2 tabular-nums">
-                      {r ? Math.round(Number(r.progress_percentage)) : 0}%
+                      {r
+                        ? Math.round(
+                            Number(r.progress_percentage)
+                          )
+                        : 0}
+                      %
                     </td>
 
                     <td className="px-4 py-2">
                       {r?.completed ? (
-                        <Badge tone="green">Yakunlangan</Badge>
+                        <Badge tone="green">
+                          Yakunlangan
+                        </Badge>
                       ) : r ? (
-                        <Badge tone="teal">Jarayonda</Badge>
+                        <Badge tone="teal">
+                          Jarayonda
+                        </Badge>
                       ) : (
-                        <Badge>Hali boshlanmagan</Badge>
+                        <Badge>
+                          Hali boshlanmagan
+                        </Badge>
                       )}
                     </td>
 
                     <td className="px-4 py-2 text-slate-600">
-                      {r ? relativeDay(r.last_watched_at) : '-'}
+                      {formatUzbekDateTime(
+                        r?.last_watched_at
+                      )}
                     </td>
                   </tr>
                 );

@@ -20,7 +20,7 @@ export function StudentHeader({ profile }: { profile: Profile }) {
           </Link>
 
           <Link href="/courses" className="hover:text-teal-700">
-            Mavzular
+
           </Link>
 
           {profile.role === 'admin' && (

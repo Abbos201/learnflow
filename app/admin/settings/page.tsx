@@ -6,7 +6,7 @@ export default async function AdminSettings() {
   const profile = await requireAdmin();
   return (
     <div>
-      <PageHeader title="Settings" subtitle="Your admin account." />
+      <PageHeader title="Settings" subtitle=" Admin akkaundingiz" />
       <SettingsForm id={profile.id} email={profile.email} fullName={profile.full_name ?? ''} />
     </div>
   );

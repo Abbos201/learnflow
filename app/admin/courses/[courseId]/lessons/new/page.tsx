@@ -16,7 +16,7 @@ export default async function NewLesson({ params }: { params: { courseId: string
   return (
     <div className="max-w-2xl">
       <Link href={`/admin/courses/${course.id}`} className="text-sm font-medium text-teal-700 hover:underline">{course.title}</Link>
-      <PageHeader title="Add Lesson" />
+      <PageHeader title="Video qo'shish" />
       <LessonForm courseId={course.id} nextOrder={nextOrder} />
     </div>
   );

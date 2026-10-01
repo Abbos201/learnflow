@@ -44,19 +44,19 @@ export default async function CoursePage({ params, searchParams }: { params: { c
         <ProgressBar value={pct} />
         {target && (
           <Link href={`/courses/${course.id}/lessons/${target.id}`} className="btn btn-primary mt-4">
-            {completed === 0 ? 'Start Learning' : current ? 'Continue Learning' : 'Review course'}
+            {completed === 0 ? 'Videoni boshlash' : current ? 'Videoni davom ittirish' : 'Darsni korish'}
           </Link>
         )}
       </div>
 
       <h2 className="mb-3 mt-8 text-lg font-semibold">Videolar</h2>
       {states.length === 0 ? (
-        <EmptyState icon={Video} title="No lessons yet" text="Lessons will appear here as soon as they are published." />
+        <EmptyState icon={Video} title="Hali video yo'q" text="Video tez orada joylanadi" />
       ) : (
         <ul className="card divide-y divide-slate-100 overflow-hidden">
           {states.map((l, i) => {
             const Icon = l.completed ? CheckCircle2 : l.unlocked ? PlayCircle : Lock;
-            const label = l.completed ? 'Completed' : l.unlocked ? (l.watched_seconds > 0 ? 'Continue' : 'Start') : 'Locked';
+            const label = l.completed ? 'Completed' : l.unlocked ? (l.watched_seconds > 0 ? 'Davom etish' : 'Boshlash') : 'Qulflangan';
             const content = (
               <div className={cn('flex items-center gap-3 px-4 py-3', l.unlocked ? 'hover:bg-slate-50' : 'bg-slate-50 text-slate-400')}>
                 <Icon className={cn('h-5 w-5 shrink-0', l.completed && 'text-emerald-600', !l.completed && l.unlocked && 'text-teal-700')} />
@@ -69,7 +69,7 @@ export default async function CoursePage({ params, searchParams }: { params: { c
             );
             return (
               <li key={l.id}>
-                {l.unlocked ? <Link href={`/courses/${course.id}/lessons/${l.id}`}>{content}</Link> : <div aria-disabled title="Complete the previous lesson to unlock">{content}</div>}
+                {l.unlocked ? <Link href={`/courses/${course.id}/lessons/${l.id}`}>{content}</Link> : <div aria-disabled title="Ochish uchun oldingi darslarni ko'ring">{content}</div>}
               </li>
             );
           })}

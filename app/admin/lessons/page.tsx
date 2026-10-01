@@ -1,49 +1,75 @@
 import Link from 'next/link';
-import { Video } from 'lucide-react';
+import { Video, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, EmptyState, PageHeader } from '@/components/ui';
-import { formatDuration, relativeDay } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
+
+function formatUzbekDateTime(date: string) {
+return new Intl.DateTimeFormat('uz-UZ', {
+timeZone: 'Asia/Tashkent',
+day: 'numeric',
+month: 'long',
+year: 'numeric',
+hour: '2-digit',
+minute: '2-digit',
+hour12: false,
+}).format(new Date(date));
+}
 
 export default async function AdminLessons() {
 const supabase = createClient();
 
-const [{ data: lessons }, { data: counts }] = await Promise.all([
+const [{ data: lessons }, { data: courses }, { data: counts }] =
+await Promise.all([
 supabase
 .from('lessons')
-.select('id, title, course_id, lesson_order, duration, published, created_at, courses(title)')
+.select(
+'id, title, course_id, lesson_order, duration, published, created_at, courses(title)'
+)
 .order('created_at', { ascending: false })
 .limit(500),
 
 
-supabase
-  .from('lesson_completion_counts')
-  .select('lesson_id, completed_count'),
+  supabase
+    .from('courses')
+    .select('id, title')
+    .order('created_at', { ascending: false }),
 
-
+  supabase
+    .from('lesson_completion_counts')
+    .select('lesson_id, completed_count'),
 ]);
 
+
 const completed = new Map<string, number>(
-(counts ?? []).map((c: { lesson_id: string; completed_count: number }) => [
+(counts ?? []).map(
+(c: { lesson_id: string; completed_count: number }) => [
 c.lesson_id,
 c.completed_count,
-])
+]
+)
 );
 
-return ( <div> <PageHeader
-     title="Videolar"
-     subtitle="Barcha mavzularga tegishli videolar. Eng yangilari birinchi ko‘rsatiladi. Yangi video qo‘shish uchun mavzu sahifasiga o‘ting."
-   />
+return ( <div>
+<PageHeader
+title="Videolar"
+subtitle="Barcha mavzularga tegishli videolarni boshqaring."
+actions={ <Link href="/admin/courses" className="btn btn-primary"> <Plus className="h-4 w-4" />
+Video qo‘shish </Link>
+}
+/>
 
-```
+
   {!lessons || lessons.length === 0 ? (
     <EmptyState
       icon={Video}
       title="Hozircha videolar mavjud emas"
+      text="Video qo‘shish uchun avval mavzuni tanlang."
       action={
         <Link href="/admin/courses" className="btn btn-primary">
-          Mavzularga o‘tish
+          Mavzuni tanlash
         </Link>
       }
     />
@@ -87,7 +113,7 @@ return ( <div> <PageHeader
               </td>
 
               <td className="px-4 py-3">
-                {completed.get(l.id) ?? 0}
+                {completed.get(l.id) ?? 0} nafar
               </td>
 
               <td className="px-4 py-3">
@@ -97,7 +123,7 @@ return ( <div> <PageHeader
               </td>
 
               <td className="px-4 py-3 text-slate-600">
-                {relativeDay(l.created_at)}
+                {formatUzbekDateTime(l.created_at)}
               </td>
             </tr>
           ))}

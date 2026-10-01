@@ -86,7 +86,7 @@ aria-label={`${name}ni o‘chirish`}
 > <Trash2 className="h-4 w-4" />
 {!iconOnly && 'O‘chirish'} </button>
 
-```
+
   <ConfirmDialog
     open={open}
     title={cfg.title}

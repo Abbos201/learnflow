@@ -56,7 +56,7 @@ console.log('COURSES DATA:', courseRows);
 
   return (
     <div>
-      <PageHeader title={`Xush kelibsiz, ${profile.full_name || 'student'}`} subtitle="Pick up where you left off." />
+      <PageHeader title={`Xush kelibsiz, ${profile.full_name || 'student'}`}  />
 
       <h2 className="mb-3 text-lg font-semibold">Mening darslarim</h2>
       {courses.length === 0 ? (

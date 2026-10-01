@@ -142,7 +142,7 @@ try {
 return ( <form onSubmit={onSubmit} className="card space-y-4 p-5">
 {error && <Alert tone="error">{error}</Alert>}
 
-```
+
   <div>
     <label htmlFor="l-title" className="label">
       Video nomi
@@ -155,7 +155,6 @@ return ( <form onSubmit={onSubmit} className="card space-y-4 p-5">
       maxLength={200}
       required
       disabled={busy}
-      placeholder="Masalan: 1-dars. Kirish"
     />
   </div>
 
@@ -197,29 +196,6 @@ return ( <form onSubmit={onSubmit} className="card space-y-4 p-5">
 
   <div className="grid gap-4 sm:grid-cols-2">
     <div>
-      <label htmlFor="l-order" className="label">
-        Video tartibi
-      </label>
-
-      <input
-        id="l-order"
-        type="number"
-        min={0}
-        step={1}
-        className="input"
-        value={order}
-        onChange={(e) => setOrder(Number(e.target.value))}
-        required
-        disabled={busy}
-      />
-
-      <p className="mt-1 text-xs text-slate-500">
-        Videolar tartib raqami bo‘yicha ko‘rsatiladi. Oraga video
-        qo‘shish uchun mos raqamni kiriting.
-      </p>
-    </div>
-
-    <div>
       <label htmlFor="l-status" className="label">
         Video holati
       </label>
@@ -231,8 +207,8 @@ return ( <form onSubmit={onSubmit} className="card space-y-4 p-5">
         onChange={(e) => setPublished(e.target.value === 'published')}
         disabled={busy}
       >
-        <option value="draft">Qoralama (o‘quvchilarga ko‘rinmaydi)</option>
         <option value="published">O‘quvchilarga ko‘rsatish</option>
+        <option value="dreaft">Qoralama (o‘quvchilarga ko‘rinmaydi)</option>
       </select>
     </div>
   </div>

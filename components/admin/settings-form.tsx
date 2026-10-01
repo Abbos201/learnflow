@@ -6,20 +6,33 @@ import { Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast';
 
-export function SettingsForm({ id, email, fullName }: { id: string; email: string; fullName: string }) {
+export function SettingsForm({
+id,
+email,
+fullName,
+}: {
+id: string;
+email: string;
+fullName: string;
+}) {
 const router = useRouter();
 const { toast } = useToast();
 const supabase = useMemo(() => createClient(), []);
+
 const [name, setName] = useState(fullName);
 const [password, setPassword] = useState('');
 const [busy, setBusy] = useState(false);
 
+const username = email.replace(/@users.learnflow.local$/i, '');
+
 async function onSubmit(e: FormEvent) {
 e.preventDefault();
 
-
 if (password && password.length < 8) {
-  return toast('error', 'Parol kamida 8 ta belgidan iborat bo‘lishi kerak.');
+  return toast(
+    'error',
+    'Parol kamida 8 ta belgidan iborat bo‘lishi kerak.'
+  );
 }
 
 setBusy(true);
@@ -35,10 +48,13 @@ try {
   }
 
   if (password) {
-    const { error: pwErr } = await supabase.auth.updateUser({ password });
+    const { error: pwErr } =
+      await supabase.auth.updateUser({ password });
 
     if (pwErr) {
-      throw new Error('Parolni yangilab bo‘lmadi. Kuchliroq parol kiriting.');
+      throw new Error(
+        'Parolni yangilab bo‘lmadi. Kuchliroq parol kiriting.'
+      );
     }
 
     setPassword('');
@@ -49,21 +65,38 @@ try {
 } catch (err) {
   toast(
     'error',
-    err instanceof Error ? err.message : 'Tarmoq xatoligi. Qayta urinib ko‘ring.'
+    err instanceof Error
+      ? err.message
+      : 'Tarmoq xatoligi. Qayta urinib ko‘ring.'
   );
 } finally {
   setBusy(false);
 }
 
+
 }
 
-return ( <form onSubmit={onSubmit} className="card max-w-lg space-y-4 p-5"> <div> <label className="label">Email</label> <input className="input" value={email} disabled readOnly /> </div>
+return ( <form
+   onSubmit={onSubmit}
+   className="card max-w-lg space-y-4 p-5"
+ > <div> <label htmlFor="s-username" className="label">
+Username </label>
 
+
+    <input
+      id="s-username"
+      className="input"
+      value={username}
+      disabled
+      readOnly
+    />
+  </div>
 
   <div>
     <label htmlFor="s-name" className="label">
       To‘liq ism
     </label>
+
     <input
       id="s-name"
       className="input"
@@ -79,6 +112,7 @@ return ( <form onSubmit={onSubmit} className="card max-w-lg space-y-4 p-5"> <div
     <label htmlFor="s-pw" className="label">
       Yangi parol (o‘zgartirmaslik uchun bo‘sh qoldiring)
     </label>
+
     <input
       id="s-pw"
       type="password"
@@ -91,8 +125,14 @@ return ( <form onSubmit={onSubmit} className="card max-w-lg space-y-4 p-5"> <div
     />
   </div>
 
-  <button className="btn btn-primary" disabled={busy}>
-    {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+  <button
+    type="submit"
+    className="btn btn-primary"
+    disabled={busy}
+  >
+    {busy && (
+      <Loader2 className="h-4 w-4 animate-spin" />
+    )}
     Sozlamalarni saqlash
   </button>
 </form>

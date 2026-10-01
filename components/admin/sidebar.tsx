@@ -21,7 +21,6 @@ const NAV = [
 { href: '/admin/courses', label: 'Mavzular', icon: BookOpen },
 { href: '/admin/lessons', label: 'Videolar', icon: Video },
 { href: '/admin/students', label: 'O‘quvchilar', icon: Users },
-{ href: '/admin/progress', label: 'O‘qish natijalari', icon: BarChart3 },
 { href: '/admin/settings', label: 'Sozlamalar', icon: Settings },
 ];
 

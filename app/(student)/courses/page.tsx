@@ -12,7 +12,7 @@ export default async function CoursesPage() {
   const courses = (data ?? []) as Course[];
   return (
     <div>
-      <PageHeader title="Courses" subtitle="All courses available to you." />
+      <PageHeader title="Darslar" subtitle="Barcha darslar" />
       {courses.length === 0 ? (
         <EmptyState icon={BookOpen} title="Hali darslar mavjud emas" text="Darslar tez orada qo'shiladi" />
       ) : (

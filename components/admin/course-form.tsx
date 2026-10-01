@@ -106,7 +106,6 @@ return ( <form onSubmit={onSubmit} className="card space-y-4 p-5">
       maxLength={200}
       required
       disabled={busy}
-      placeholder="Masalan: JavaScript asoslari"
     />
   </div>
 
@@ -160,8 +159,8 @@ return ( <form onSubmit={onSubmit} className="card space-y-4 p-5">
         onChange={(e) => setPublished(e.target.value === 'published')}
         disabled={busy}
       >
-        <option value="draft">Qoralama</option>
         <option value="published">O‘quvchilarga ko‘rsatish</option>
+        <option value="draft">Qoralama (o‘quvchilarga ko‘rinmaydi)</option>
       </select>
     </div>
   </div>
