@@ -31,14 +31,14 @@ export default async function CoursePage({ params, searchParams }: { params: { c
 
   return (
     <div className="mx-auto max-w-3xl">
-      {searchParams.locked && <div className="mb-4"><Alert tone="info">That lesson is locked. Finish the previous lesson to unlock it.</Alert></div>}
+      {searchParams.locked && <div className="mb-4"><Alert tone="info">Video qulflangan ochish uchun oldingi darslarni koring!</Alert></div>}
 
       <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
       {course.description && <p className="mt-2 whitespace-pre-line text-slate-600">{course.description}</p>}
 
       <div className="card mt-6 p-5">
         <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium">{completed} / {states.length} lessons completed</span>
+          <span className="font-medium">{completed} / {states.length}Video ko'rildi</span>
           <span className="text-slate-600">{pct}%</span>
         </div>
         <ProgressBar value={pct} />
@@ -49,7 +49,7 @@ export default async function CoursePage({ params, searchParams }: { params: { c
         )}
       </div>
 
-      <h2 className="mb-3 mt-8 text-lg font-semibold">Lessons</h2>
+      <h2 className="mb-3 mt-8 text-lg font-semibold">Videolar</h2>
       {states.length === 0 ? (
         <EmptyState icon={Video} title="No lessons yet" text="Lessons will appear here as soon as they are published." />
       ) : (
@@ -61,7 +61,7 @@ export default async function CoursePage({ params, searchParams }: { params: { c
               <div className={cn('flex items-center gap-3 px-4 py-3', l.unlocked ? 'hover:bg-slate-50' : 'bg-slate-50 text-slate-400')}>
                 <Icon className={cn('h-5 w-5 shrink-0', l.completed && 'text-emerald-600', !l.completed && l.unlocked && 'text-teal-700')} />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">Lesson {i + 1} — {l.title}</div>
+                  <div className="truncate font-medium">Video {i + 1} — {l.title}</div>
                   {l.duration ? <div className="text-xs text-slate-500">{formatDuration(l.duration)}</div> : null}
                 </div>
                 <span className="text-sm">{label}{!l.completed && l.unlocked && l.progress_percentage > 0 ? ` (${Math.round(l.progress_percentage)}%)` : ''}</span>

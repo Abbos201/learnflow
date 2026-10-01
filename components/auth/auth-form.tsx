@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -32,9 +33,14 @@ export function AuthForm({
 
     const form = new FormData(e.currentTarget);
 
-    const username = String(form.get('username') ?? '')
+    let username = String(form.get('username') ?? '')
       .trim()
       .toLowerCase();
+
+    // Username boshiga @ avtomatik qo‘shiladi.
+    if (username && !username.startsWith('@')) {
+      username = `@${username}`;
+    }
 
     const fullName = String(form.get('full_name') ?? '')
       .trim()
@@ -48,35 +54,33 @@ export function AuthForm({
     try {
       if (isRegister) {
         if (!username) {
-          throw new Error('Please enter a username.');
+          throw new Error('Foydalanuvchi nomini kiriting.');
         }
 
         if (!/^@[a-zA-Z0-9_]{3,30}$/.test(username)) {
           throw new Error(
-            'Username must be 3–30 characters and contain only letters, numbers, and _.'
+            'Foydalanuvchi nomi 3–30 ta belgidan iborat bo‘lishi kerak. Faqat harflar, raqamlar va _ belgisidan foydalaning.'
           );
         }
 
         if (!fullName) {
-          throw new Error('Please enter your full name.');
+          throw new Error('Ism va familiyangizni kiriting.');
         }
 
         if (password.length < 8) {
-          throw new Error('Password must be at least 8 characters.');
+          throw new Error('Parol kamida 8 ta belgidan iborat bo‘lishi kerak.');
         }
 
         if (password !== confirmPassword) {
-          throw new Error('Passwords do not match.');
+          throw new Error('Parollar bir-biriga mos kelmadi.');
         }
 
         /*
-         * Supabase Password Auth normally requires an email.
-         * We generate a private technical email from the username.
-         * The user never needs to enter or see this email.
+         * Supabase autentifikatsiyasi uchun texnik email yaratiladi.
+         * Foydalanuvchidan email talab qilinmaydi.
          */
         const technicalUsername = username.slice(1);
-
-const technicalEmail = `${technicalUsername}@users.learnflow.local`;
+        const technicalEmail = `${technicalUsername}@users.learnflow.local`;
 
         const { data, error: signUpError } =
           await supabase.auth.signUp({
@@ -98,7 +102,7 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
             message.includes('already been registered') ||
             message.includes('user already exists')
           ) {
-            throw new Error('This username is already taken.');
+            throw new Error('Bu foydalanuvchi nomi band.');
           }
 
           throw signUpError;
@@ -108,19 +112,19 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
           router.push(next);
           router.refresh();
         } else {
-          setInfo('Account created. You can now log in.');
+          setInfo('Hisob yaratildi. Endi tizimga kirishingiz mumkin.');
         }
       } else {
         if (!username) {
-          throw new Error('Please enter your username.');
+          throw new Error('Foydalanuvchi nomini kiriting.');
         }
 
         if (!password) {
-          throw new Error('Please enter your password.');
+          throw new Error('Parolingizni kiriting.');
         }
 
         /*
-         * Resolve username -> technical email on the server.
+         * Foydalanuvchi nomi orqali texnik email serverda aniqlanadi.
          */
         const response = await fetch('/api/auth/login', {
           method: 'POST',
@@ -136,7 +140,7 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
         const result = await response.json();
 
         if (!response.ok || !result.email) {
-          throw new Error('Invalid username or password.');
+          throw new Error('Foydalanuvchi nomi yoki parol noto‘g‘ri.');
         }
 
         const { error: loginError } =
@@ -146,7 +150,7 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
           });
 
         if (loginError) {
-          throw new Error('Invalid username or password.');
+          throw new Error('Foydalanuvchi nomi yoki parol noto‘g‘ri.');
         }
 
         router.push(next);
@@ -159,8 +163,8 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
       setError(
         message ||
           (isRegister
-            ? 'Could not create your account.'
-            : 'Invalid username or password.')
+            ? 'Hisob yaratib bo‘lmadi.'
+            : 'Foydalanuvchi nomi yoki parol noto‘g‘ri.')
       );
     } finally {
       setLoading(false);
@@ -177,7 +181,7 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
 
       <div>
         <label htmlFor="username" className="label">
-          Username
+          Foydalanuvchi nomi
         </label>
 
         <input
@@ -188,19 +192,19 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
           required
           minLength={3}
           maxLength={30}
-          pattern="@[a-zA-Z0-9_]{3,30}"
-          placeholder="abbos123"
+          placeholder="@abbos123"
         />
 
         <p className="mt-1 text-xs text-slate-500">
-          3–30 characters: letters, numbers and underscore.
+          3–30 ta belgi: harflar, raqamlar va pastki chiziq (_).
+          @ belgisi avtomatik qo‘shiladi.
         </p>
       </div>
 
       {isRegister && (
         <div>
           <label htmlFor="full_name" className="label">
-            Full name
+            Ism va familiya
           </label>
 
           <input
@@ -217,7 +221,7 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
 
       <div>
         <label htmlFor="password" className="label">
-          Password
+          Parol
         </label>
 
         <input
@@ -240,7 +244,7 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
             htmlFor="confirm_password"
             className="label"
           >
-            Confirm password
+            Parolni tasdiqlang
           </label>
 
           <input
@@ -265,28 +269,28 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
           <Loader2 className="h-4 w-4 animate-spin" />
         )}
 
-        {isRegister ? 'Create account' : 'Log in'}
+        {isRegister ? 'Ro‘yxatdan o‘tish' : 'Tizimga kirish'}
       </button>
 
       <p className="text-center text-sm text-slate-600">
         {isRegister ? (
           <>
-            Already have an account?{' '}
+            Hisobingiz bormi?{' '}
             <Link
               href="/login"
               className="font-medium text-teal-700 hover:underline"
             >
-              Log in
+              Tizimga kiring
             </Link>
           </>
         ) : (
           <>
-            New here?{' '}
+            Hali hisobingiz yo‘qmi?{' '}
             <Link
               href="/register"
               className="font-medium text-teal-700 hover:underline"
             >
-              Create an account
+              Ro‘yxatdan o‘ting
             </Link>
           </>
         )}
@@ -294,3 +298,4 @@ const technicalEmail = `${technicalUsername}@users.learnflow.local`;
     </form>
   );
 }
+

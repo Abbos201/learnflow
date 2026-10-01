@@ -32,7 +32,7 @@ export default async function LessonPage({ params }: { params: { courseId: strin
   // The storage policy re-checks can_access_lesson(), so a locked video can never be signed.
   const { data: signed, error } = await supabase.storage.from(VIDEO_BUCKET).createSignedUrl(current.video_path, 60 * 60 * 3);
   if (error || !signed) {
-    return <Alert tone="error">This lesson video is not available right now. Please try again later.</Alert>;
+    return <Alert tone="error">Video hozircha mavjud emas</Alert>;
   }
 
   return (

@@ -56,24 +56,24 @@ console.log('COURSES DATA:', courseRows);
 
   return (
     <div>
-      <PageHeader title={`Welcome, ${profile.full_name || 'student'}`} subtitle="Pick up where you left off." />
+      <PageHeader title={`Xush kelibsiz, ${profile.full_name || 'student'}`} subtitle="Pick up where you left off." />
 
-      <h2 className="mb-3 text-lg font-semibold">My Courses</h2>
+      <h2 className="mb-3 text-lg font-semibold">Mening darslarim</h2>
       {courses.length === 0 ? (
-        <EmptyState icon={BookOpen} title="No courses yet" text="New courses will appear here as soon as they are published." />
+        <EmptyState icon={BookOpen} title="Hozircha darslar mavjud emas" />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => {
             const t = total.get(c.id) ?? 0;
             const d = done.get(c.id) ?? 0;
-            return <CourseCard key={c.id} course={c} completed={d} total={t} href={`/courses/${c.id}`} cta={d > 0 && d < t ? 'Continue Learning' : d >= t && t > 0 ? 'Review course' : 'Start Learning'} />;
+            return <CourseCard key={c.id} course={c} completed={d} total={t} href={`/courses/${c.id}`} cta={d > 0 && d < t ? 'Davom ettirish' : d >= t && t > 0 ? 'Qaytadan korish' : 'Boshlash'} />;
           })}
         </div>
       )}
 
       {recent && recent.length > 0 && (
         <div className="mt-10">
-          <h2 className="mb-3 text-lg font-semibold">Recently watched</h2>
+          <h2 className="mb-3 text-lg font-semibold">Yaqinda ko'rilgan:</h2>
           <ul className="card divide-y divide-slate-100">
             {recent.map((r: any) => (
               <li key={r.lesson_id}>

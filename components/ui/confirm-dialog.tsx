@@ -14,7 +14,7 @@ export function ConfirmDialog({
         <h2 id="confirm-title" className="text-lg font-semibold text-slate-900">{title}</h2>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
         <div className="mt-6 flex justify-end gap-2">
-          <button className="btn btn-secondary" onClick={onCancel} disabled={loading}>Cancel</button>
+          <button className="btn btn-secondary" onClick={onCancel} disabled={loading}>Bekor qilish</button>
           <button className="btn btn-danger" onClick={onConfirm} disabled={loading}>
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {confirmLabel}

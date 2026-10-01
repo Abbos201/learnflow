@@ -14,7 +14,7 @@ export default async function CoursesPage() {
     <div>
       <PageHeader title="Courses" subtitle="All courses available to you." />
       {courses.length === 0 ? (
-        <EmptyState icon={BookOpen} title="No courses yet" text="New courses will appear here as soon as they are published." />
+        <EmptyState icon={BookOpen} title="Hali darslar mavjud emas" text="Darslar tez orada qo'shiladi" />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {courses.map((c) => <CourseCard key={c.id} course={c} href={`/courses/${c.id}`} />)}

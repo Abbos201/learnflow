@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -15,11 +16,15 @@ export function StudentActions({ id, name, role }: { id: string; name: string; r
     setBusy(true);
     try {
       const res = await setUserRole(id, role === 'admin' ? 'student' : 'admin');
-      if (!res.ok) return toast('error', res.error ?? 'Could not change the role.');
-      toast('success', 'Role updated.');
+
+      if (!res.ok) {
+        return toast('error', res.error ?? 'Foydalanuvchi rolini o‘zgartirib bo‘lmadi.');
+      }
+
+      toast('success', 'Foydalanuvchi roli muvaffaqiyatli o‘zgartirildi.');
       router.refresh();
     } catch {
-      toast('error', 'Network error. Please try again.');
+      toast('error', 'Ulanishda xatolik yuz berdi. Qayta urinib ko‘ring.');
     } finally {
       setBusy(false);
     }
@@ -27,8 +32,18 @@ export function StudentActions({ id, name, role }: { id: string; name: string; r
 
   return (
     <div className="flex items-center justify-end gap-1">
-      <button onClick={change} disabled={busy} className="btn btn-ghost px-2 py-1 text-xs">{role === 'admin' ? 'Make student' : 'Make admin'}</button>
-      {role === 'student' && <DeleteButton kind="student" id={id} name={name} iconOnly />}
+      <button
+        onClick={change}
+        disabled={busy}
+        className="btn btn-ghost px-2 py-1 text-xs"
+      >
+        {role === 'admin' ? 'O‘quvchi qilish' : 'Admin qilish'}
+      </button>
+
+      {role === 'student' && (
+        <DeleteButton kind="student" id={id} name={name} iconOnly />
+      )}
     </div>
   );
 }
+
