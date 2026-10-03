@@ -192,7 +192,6 @@ export function AuthForm({
           required
           minLength={3}
           maxLength={30}
-          placeholder="@abbos123"
         />
 
         <p className="mt-1 text-xs text-slate-500">
@@ -213,7 +212,6 @@ export function AuthForm({
             autoComplete="name"
             required
             maxLength={120}
-            placeholder="Abbos Mamarajapov"
           />
         </div>
       )}
