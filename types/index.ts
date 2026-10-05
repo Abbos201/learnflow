@@ -3,6 +3,7 @@ export type Role = 'admin' | 'student';
 export interface Profile {
   id: string;
   email: string;
+  username: string | null;
   full_name: string | null;
   role: Role;
   created_at: string;
@@ -15,7 +16,6 @@ export interface Course {
   thumbnail_url: string | null;
   published: boolean;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Lesson {
@@ -23,27 +23,38 @@ export interface Lesson {
   course_id: string;
   title: string;
   description: string | null;
+  lesson_order: number;
   video_path: string;
   duration: number | null;
-  lesson_order: number;
   published: boolean;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Progress {
   id: string;
   user_id: string;
-  course_id: string;
   lesson_id: string;
   watched_seconds: number;
-  video_duration: number | null;
   progress_percentage: number;
   completed: boolean;
-  completed_at: string | null;
-  last_watched_at: string;
-  created_at: string;
   updated_at: string;
 }
 
-export type ActionResult = { ok: boolean; error?: string; id?: string };
+export interface CourseProgress {
+  course_id: string;
+  total_lessons: number;
+  completed_lessons: number;
+  progress_percentage: number;
+  last_activity: string | null;
+}
+
+export type ActionResult =
+  | {
+      ok: true;
+      id?: string;
+      count?: number;
+    }
+  | {
+      ok: false;
+      error: string;
+    };

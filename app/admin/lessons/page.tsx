@@ -83,7 +83,7 @@ Video qo‘shish </Link>
             <th className="px-4 py-3 font-medium">Tartib</th>
             <th className="px-4 py-3 font-medium">Davomiyligi</th>
             <th className="px-4 py-3 font-medium">Yakunlaganlar</th>
-            <th className="px-4 py-3 font-medium">Holati</th>
+            {/* <th className="px-4 py-3 font-medium">Holati</th> */}
             <th className="px-4 py-3 font-medium">Yuklangan vaqt</th>
           </tr>
         </thead>
@@ -116,11 +116,11 @@ Video qo‘shish </Link>
                 {completed.get(l.id) ?? 0} nafar
               </td>
 
-              <td className="px-4 py-3">
+              {/* <td className="px-4 py-3">
                 <Badge tone={l.published ? 'green' : 'amber'}>
                   {l.published ? 'Nashr qilingan' : 'Qoralama'}
                 </Badge>
-              </td>
+              </td> */}
 
               <td className="px-4 py-3 text-slate-600">
                 {formatUzbekDateTime(l.created_at)}

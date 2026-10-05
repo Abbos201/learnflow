@@ -1,63 +1,213 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getCurrentProfile } from '@/lib/auth';
 import { VIDEO_BUCKET } from '@/lib/utils';
+
 import type { ActionResult } from '@/types';
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const VIDEO_PATH = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/video\.(mp4|webm|mov)$/i;
-const DENIED: ActionResult = { ok: false, error: 'You are not authorized to do this.' };
-const GENERIC: ActionResult = { ok: false, error: 'Something went wrong. Please try again.' };
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                  */
+/* -------------------------------------------------------------------------- */
 
-/** Trim, strip control characters (keeps newlines/tabs) and cap the length. React escapes output on render. */
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const VIDEO_PATH =
+  /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/video\.(mp4|webm|mov)$/i;
+
+const DENIED: ActionResult = {
+  ok: false,
+  error: 'You are not authorized to do this.',
+};
+
+const GENERIC: ActionResult = {
+  ok: false,
+  error: 'Something went wrong. Please try again.',
+};
+
+/* -------------------------------------------------------------------------- */
+/* Helpers                                                                    */
+/* -------------------------------------------------------------------------- */
+
 function text(value: unknown, max: number) {
-  return String(value ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').trim().slice(0, max);
+  return String(value ?? '')
+    .replace(
+      /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,
+      ''
+    )
+    .trim()
+    .slice(0, max);
 }
+
 async function adminOrNull() {
-  const p = await getCurrentProfile();
-  return p?.role === 'admin' ? p : null;
+  const profile = await getCurrentProfile();
+
+  return profile?.role === 'admin' ? profile : null;
 }
+
 function refresh() {
   revalidatePath('/', 'layout');
 }
 
-export async function saveCourse(input: { id?: string; title: string; description: string; thumbnail_url: string | null; published: boolean }): Promise<ActionResult> {
-  if (!(await adminOrNull())) return DENIED;
+/* -------------------------------------------------------------------------- */
+/* Course                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export async function saveCourse(input: {
+  id?: string;
+  title: string;
+  description: string;
+  thumbnail_url: string | null;
+  published: boolean;
+}): Promise<ActionResult> {
+  if (!(await adminOrNull())) {
+    return DENIED;
+  }
+
   const title = text(input.title, 200);
-  if (!title) return { ok: false, error: 'Course title is required.' };
-  const thumb = input.thumbnail_url ? text(input.thumbnail_url, 1000) : null;
-  if (thumb && !thumb.startsWith('https://')) return { ok: false, error: 'Invalid thumbnail URL.' };
-  const row = { title, description: text(input.description, 5000), thumbnail_url: thumb, published: !!input.published };
+
+  if (!title) {
+    return {
+      ok: false,
+      error: 'Course title is required.',
+    };
+  }
+
+  const thumb = input.thumbnail_url
+    ? text(input.thumbnail_url, 1000)
+    : null;
+
+  if (thumb && !thumb.startsWith('https://')) {
+    return {
+      ok: false,
+      error: 'Invalid thumbnail URL.',
+    };
+  }
+
+  const row = {
+    title,
+    description: text(input.description, 5000),
+    thumbnail_url: thumb,
+
+    // Yangi mavzu avtomatik ko‘rinadi.
+    published: true,
+  };
+
   const supabase = createClient();
 
   if (input.id) {
-    if (!UUID.test(input.id)) return { ok: false, error: 'Course not found.' };
-    const { error } = await supabase.from('courses').update(row).eq('id', input.id);
-    if (error) return (console.error(error.message), GENERIC);
+    if (!UUID.test(input.id)) {
+      return {
+        ok: false,
+        error: 'Course not found.',
+      };
+    }
+
+    const { error } = await supabase
+      .from('courses')
+      .update(row)
+      .eq('id', input.id);
+
+    if (error) {
+      console.error(error.message);
+      return GENERIC;
+    }
+
     refresh();
-    return { ok: true, id: input.id };
+
+    return {
+      ok: true,
+      id: input.id,
+    };
   }
-  const { data, error } = await supabase.from('courses').insert(row).select('id').single();
-  if (error || !data) return (console.error(error?.message), GENERIC);
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from('courses')
+    .insert(row)
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    console.error(error?.message);
+    return GENERIC;
+  }
+
   refresh();
-  return { ok: true, id: data.id };
+
+  return {
+    ok: true,
+    id: data.id,
+  };
 }
 
-export async function deleteCourse(id: string): Promise<ActionResult> {
-  if (!(await adminOrNull())) return DENIED;
-  if (!UUID.test(id)) return { ok: false, error: 'Course not found.' };
+/* -------------------------------------------------------------------------- */
+/* Delete Course                                                              */
+/* -------------------------------------------------------------------------- */
+
+export async function deleteCourse(
+  id: string
+): Promise<ActionResult> {
+  if (!(await adminOrNull())) {
+    return DENIED;
+  }
+
+  if (!UUID.test(id)) {
+    return {
+      ok: false,
+      error: 'Course not found.',
+    };
+  }
+
   const supabase = createClient();
-  const { data: lessons } = await supabase.from('lessons').select('video_path').eq('course_id', id);
-  const paths = (lessons ?? []).map((l: { video_path: string }) => l.video_path).filter(Boolean);
-  if (paths.length) await supabase.storage.from(VIDEO_BUCKET).remove(paths);
-  const { error } = await supabase.from('courses').delete().eq('id', id);
-  if (error) return (console.error(error.message), GENERIC);
+
+  const {
+    data: lessons,
+  } = await supabase
+    .from('lessons')
+    .select('video_path')
+    .eq('course_id', id);
+
+  const paths = (lessons ?? [])
+    .map(
+      (lesson: { video_path: string | null }) =>
+        lesson.video_path
+    )
+    .filter(Boolean) as string[];
+
+  if (paths.length > 0) {
+    await supabase
+      .storage
+      .from(VIDEO_BUCKET)
+      .remove(paths);
+  }
+
+  const { error } = await supabase
+    .from('courses')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(error.message);
+    return GENERIC;
+  }
+
   refresh();
-  return { ok: true };
+
+  return {
+    ok: true,
+  };
 }
+
+/* -------------------------------------------------------------------------- */
+/* Lesson                                                                     */
+/* -------------------------------------------------------------------------- */
 
 type LessonInput = {
   id: string;
@@ -71,108 +221,715 @@ type LessonInput = {
 };
 
 function lessonFields(input: LessonInput) {
-  const order = Math.max(0, Math.min(100000, Math.floor(Number(input.lesson_order) || 0)));
-  return { title: text(input.title, 200), description: text(input.description, 5000), lesson_order: order, published: !!input.published };
+  const order = Math.max(
+    0,
+    Math.min(
+      100000,
+      Math.floor(Number(input.lesson_order) || 0)
+    )
+  );
+
+  return {
+    title: text(input.title, 200),
+    description: text(input.description, 5000),
+    lesson_order: order,
+
+    // Yangi video avtomatik ko‘rinadi.
+    published: true,
+  };
 }
+
 function cleanDuration(d: unknown) {
   const n = Number(d);
-  return n > 0 && isFinite(n) ? Math.round(n * 100) / 100 : null;
-}
-async function videoExists(supabase: ReturnType<typeof createClient>, courseId: string, lessonId: string, path: string) {
-  const { data } = await supabase.storage.from(VIDEO_BUCKET).list(`${courseId}/${lessonId}`);
-  return !!data?.some((f) => `${courseId}/${lessonId}/${f.name}` === path);
+
+  return n > 0 && Number.isFinite(n)
+    ? Math.round(n * 100) / 100
+    : null;
 }
 
-export async function createLesson(input: LessonInput): Promise<ActionResult> {
-  if (!(await adminOrNull())) return DENIED;
-  if (!UUID.test(input.id) || !UUID.test(input.course_id)) return { ok: false, error: 'Invalid lesson.' };
+async function videoExists(
+  supabase: ReturnType<typeof createClient>,
+  courseId: string,
+  lessonId: string,
+  path: string
+) {
+  const { data } = await supabase
+    .storage
+    .from(VIDEO_BUCKET)
+    .list(`${courseId}/${lessonId}`);
+
+  return !!data?.some(
+    (file) =>
+      `${courseId}/${lessonId}/${file.name}` === path
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/* Create Lesson                                                              */
+/* -------------------------------------------------------------------------- */
+
+export async function createLesson(
+  input: LessonInput
+): Promise<ActionResult> {
+  if (!(await adminOrNull())) {
+    return DENIED;
+  }
+
+  if (
+    !UUID.test(input.id) ||
+    !UUID.test(input.course_id)
+  ) {
+    return {
+      ok: false,
+      error: 'Invalid lesson.',
+    };
+  }
+
   const fields = lessonFields(input);
-  if (!fields.title) return { ok: false, error: 'Lesson title is required.' };
+
+  if (!fields.title) {
+    return {
+      ok: false,
+      error: 'Lesson title is required.',
+    };
+  }
+
   const path = String(input.video_path ?? '');
-  if (!VIDEO_PATH.test(path) || !path.startsWith(`${input.course_id}/${input.id}/`)) return { ok: false, error: 'Invalid video path.' };
+
+  if (
+    !VIDEO_PATH.test(path) ||
+    !path.startsWith(
+      `${input.course_id}/${input.id}/`
+    )
+  ) {
+    return {
+      ok: false,
+      error: 'Invalid video path.',
+    };
+  }
 
   const supabase = createClient();
-  if (!(await videoExists(supabase, input.course_id, input.id, path))) return { ok: false, error: 'The video was not found in storage. Please upload it again.' };
 
-  const { error } = await supabase.from('lessons').insert({ id: input.id, course_id: input.course_id, ...fields, video_path: path, duration: cleanDuration(input.duration) });
-  if (error) return (console.error(error.message), GENERIC);
+  const exists = await videoExists(
+    supabase,
+    input.course_id,
+    input.id,
+    path
+  );
+
+  if (!exists) {
+    return {
+      ok: false,
+      error:
+        'The video was not found in storage. Please upload it again.',
+    };
+  }
+
+  const { error } = await supabase
+    .from('lessons')
+    .insert({
+      id: input.id,
+      course_id: input.course_id,
+      ...fields,
+      video_path: path,
+      duration: cleanDuration(input.duration),
+    });
+
+  if (error) {
+    console.error(error.message);
+    return GENERIC;
+  }
+
   refresh();
-  return { ok: true, id: input.id };
+
+  return {
+    ok: true,
+    id: input.id,
+  };
 }
 
-export async function updateLesson(input: LessonInput): Promise<ActionResult> {
-  if (!(await adminOrNull())) return DENIED;
-  if (!UUID.test(input.id)) return { ok: false, error: 'Lesson not found.' };
+/* -------------------------------------------------------------------------- */
+/* Update Lesson                                                              */
+/* -------------------------------------------------------------------------- */
+
+export async function updateLesson(
+  input: LessonInput
+): Promise<ActionResult> {
+  if (!(await adminOrNull())) {
+    return DENIED;
+  }
+
+  if (!UUID.test(input.id)) {
+    return {
+      ok: false,
+      error: 'Lesson not found.',
+    };
+  }
+
   const fields = lessonFields(input);
-  if (!fields.title) return { ok: false, error: 'Lesson title is required.' };
+
+  if (!fields.title) {
+    return {
+      ok: false,
+      error: 'Lesson title is required.',
+    };
+  }
 
   const supabase = createClient();
-  const { data: existing } = await supabase.from('lessons').select('course_id, video_path').eq('id', input.id).maybeSingle();
-  if (!existing) return { ok: false, error: 'Lesson not found.' };
 
-  const update: Record<string, unknown> = { ...fields };
+  const {
+    data: existing,
+  } = await supabase
+    .from('lessons')
+    .select('course_id, video_path')
+    .eq('id', input.id)
+    .maybeSingle();
+
+  if (!existing) {
+    return {
+      ok: false,
+      error: 'Lesson not found.',
+    };
+  }
+
+  const update: Record<string, unknown> = {
+    ...fields,
+  };
+
   if (input.video_path) {
     const path = String(input.video_path);
-    if (!VIDEO_PATH.test(path) || !path.startsWith(`${existing.course_id}/${input.id}/`)) return { ok: false, error: 'Invalid video path.' };
-    if (!(await videoExists(supabase, existing.course_id, input.id, path))) return { ok: false, error: 'The video was not found in storage. Please upload it again.' };
+
+    if (
+      !VIDEO_PATH.test(path) ||
+      !path.startsWith(
+        `${existing.course_id}/${input.id}/`
+      )
+    ) {
+      return {
+        ok: false,
+        error: 'Invalid video path.',
+      };
+    }
+
+    const exists = await videoExists(
+      supabase,
+      existing.course_id,
+      input.id,
+      path
+    );
+
+    if (!exists) {
+      return {
+        ok: false,
+        error:
+          'The video was not found in storage. Please upload it again.',
+      };
+    }
+
     update.video_path = path;
-    update.duration = cleanDuration(input.duration);
-    if (existing.video_path !== path) await supabase.storage.from(VIDEO_BUCKET).remove([existing.video_path]);
+    update.duration = cleanDuration(
+      input.duration
+    );
+
+    if (
+      existing.video_path &&
+      existing.video_path !== path
+    ) {
+      await supabase
+        .storage
+        .from(VIDEO_BUCKET)
+        .remove([existing.video_path]);
+    }
   }
-  const { error } = await supabase.from('lessons').update(update).eq('id', input.id);
-  if (error) return (console.error(error.message), GENERIC);
+
+  const { error } = await supabase
+    .from('lessons')
+    .update(update)
+    .eq('id', input.id);
+
+  if (error) {
+    console.error(error.message);
+    return GENERIC;
+  }
+
   refresh();
-  return { ok: true, id: input.id };
+
+  return {
+    ok: true,
+    id: input.id,
+  };
 }
 
-export async function setLessonPublished(id: string, published: boolean): Promise<ActionResult> {
-  if (!(await adminOrNull())) return DENIED;
-  if (!UUID.test(id)) return { ok: false, error: 'Lesson not found.' };
-  const { error } = await createClient().from('lessons').update({ published }).eq('id', id);
-  if (error) return (console.error(error.message), GENERIC);
+/* -------------------------------------------------------------------------- */
+/* Set Lesson Published                                                       */
+/* -------------------------------------------------------------------------- */
+
+export async function setLessonPublished(
+  id: string,
+  published: boolean
+): Promise<ActionResult> {
+  if (!(await adminOrNull())) {
+    return DENIED;
+  }
+
+  if (!UUID.test(id)) {
+    return {
+      ok: false,
+      error: 'Lesson not found.',
+    };
+  }
+
+  const { error } = await createClient()
+    .from('lessons')
+    .update({
+      published,
+    })
+    .eq('id', id);
+
+  if (error) {
+    console.error(error.message);
+    return GENERIC;
+  }
+
   refresh();
-  return { ok: true };
+
+  return {
+    ok: true,
+  };
 }
 
-export async function deleteLesson(id: string): Promise<ActionResult> {
-  if (!(await adminOrNull())) return DENIED;
-  if (!UUID.test(id)) return { ok: false, error: 'Lesson not found.' };
+/* -------------------------------------------------------------------------- */
+/* Delete Lesson                                                              */
+/* -------------------------------------------------------------------------- */
+
+export async function deleteLesson(
+  id: string
+): Promise<ActionResult> {
+  if (!(await adminOrNull())) {
+    return DENIED;
+  }
+
+  if (!UUID.test(id)) {
+    return {
+      ok: false,
+      error: 'Lesson not found.',
+    };
+  }
+
   const supabase = createClient();
-  const { data: lesson } = await supabase.from('lessons').select('video_path').eq('id', id).maybeSingle();
-  if (!lesson) return { ok: false, error: 'Lesson not found.' };
-  if (lesson.video_path) await supabase.storage.from(VIDEO_BUCKET).remove([lesson.video_path]);
-  const { error } = await supabase.from('lessons').delete().eq('id', id);
-  if (error) return (console.error(error.message), GENERIC);
-  refresh();
-  return { ok: true };
-}
 
-export async function setUserRole(userId: string, role: 'admin' | 'student'): Promise<ActionResult> {
-  const me = await adminOrNull();
-  if (!me) return DENIED;
-  if (!UUID.test(userId) || (role !== 'admin' && role !== 'student')) return { ok: false, error: 'Invalid request.' };
-  if (userId === me.id) return { ok: false, error: 'You cannot change your own role.' };
-  const { error } = await createClient().from('profiles').update({ role }).eq('id', userId);
-  if (error) return (console.error(error.message), GENERIC);
-  refresh();
-  return { ok: true };
-}
+  const {
+    data: lesson,
+  } = await supabase
+    .from('lessons')
+    .select('video_path')
+    .eq('id', id)
+    .maybeSingle();
 
-/** Deleting an auth user needs the service-role key, so it happens here on the server only. */
-export async function deleteStudent(userId: string): Promise<ActionResult> {
-  const me = await adminOrNull();
-  if (!me) return DENIED;
-  if (!UUID.test(userId) || userId === me.id) return { ok: false, error: 'Invalid request.' };
-  const { data: target } = await createClient().from('profiles').select('role').eq('id', userId).maybeSingle();
-  if (!target) return { ok: false, error: 'Student not found.' };
-  if (target.role !== 'student') return { ok: false, error: 'Demote this admin to student before deleting the account.' };
-  try {
-    const { error } = await createAdminClient().auth.admin.deleteUser(userId);
-    if (error) return (console.error(error.message), GENERIC);
-  } catch (e) {
-    console.error(e);
-    return { ok: false, error: 'Deleting students requires SUPABASE_SERVICE_ROLE_KEY to be configured on the server.' };
+  if (!lesson) {
+    return {
+      ok: false,
+      error: 'Lesson not found.',
+    };
   }
+
+  if (lesson.video_path) {
+    await supabase
+      .storage
+      .from(VIDEO_BUCKET)
+      .remove([lesson.video_path]);
+  }
+
+  const { error } = await supabase
+    .from('lessons')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error(error.message);
+    return GENERIC;
+  }
+
   refresh();
-  return { ok: true };
+
+  return {
+    ok: true,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* User Role                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function setUserRole(
+  userId: string,
+  role: 'admin' | 'student'
+): Promise<ActionResult> {
+  const me = await adminOrNull();
+
+  if (!me) {
+    return DENIED;
+  }
+
+  if (
+    !UUID.test(userId) ||
+    (role !== 'admin' && role !== 'student')
+  ) {
+    return {
+      ok: false,
+      error: 'Invalid request.',
+    };
+  }
+
+  if (userId === me.id) {
+    return {
+      ok: false,
+      error: 'You cannot change your own role.',
+    };
+  }
+
+  const { error } = await createClient()
+    .from('profiles')
+    .update({
+      role,
+    })
+    .eq('id', userId);
+
+  if (error) {
+    console.error(error.message);
+    return GENERIC;
+  }
+
+  refresh();
+
+  return {
+    ok: true,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Delete Student                                                             */
+/* -------------------------------------------------------------------------- */
+
+export async function deleteStudent(
+  userId: string
+): Promise<ActionResult> {
+  const me = await adminOrNull();
+
+  if (!me) {
+    return DENIED;
+  }
+
+  if (
+    !UUID.test(userId) ||
+    userId === me.id
+  ) {
+    return {
+      ok: false,
+      error: 'Invalid request.',
+    };
+  }
+
+  const {
+    data: target,
+  } = await createClient()
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (!target) {
+    return {
+      ok: false,
+      error: 'Student not found.',
+    };
+  }
+
+  if (target.role !== 'student') {
+    return {
+      ok: false,
+      error:
+        'Demote this admin to student before deleting the account.',
+    };
+  }
+
+  try {
+    const admin = createAdminClient();
+
+    const {
+      error,
+    } = await admin.auth.admin.deleteUser(
+      userId
+    );
+
+    if (error) {
+      console.error(error.message);
+      return GENERIC;
+    }
+  } catch (error) {
+    console.error(error);
+
+    return {
+      ok: false,
+      error:
+        'Deleting students requires SUPABASE_SERVICE_ROLE_KEY to be configured on the server.',
+    };
+  }
+
+  refresh();
+
+  return {
+    ok: true,
+  };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Student Username Generator                                                 */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Database constraint:
+ *
+ * username ~ '^@[a-zA-Z0-9_]{3,30}$'
+ *
+ * Shuning uchun username @ bilan boshlanadi.
+ *
+ * Masalan:
+ *
+ * Ali Valiyev -> @alivaliyev4821
+ */
+function makeUsername(name: string) {
+  const base =
+    name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/['ʻ’`"]/g, '')
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 20) || 'student';
+
+  const suffix = Math.floor(
+    1000 + Math.random() * 9000
+  );
+
+  return `@${base}${suffix}`;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Create Students                                                            */
+/* -------------------------------------------------------------------------- */
+
+export async function createStudents(
+  students: Array<{
+    name: string;
+    password: string;
+  }>
+): Promise<ActionResult> {
+  /*
+   * Faqat admin o‘quvchi yarata oladi.
+   */
+  const me = await adminOrNull();
+
+  if (!me) {
+    return DENIED;
+  }
+
+  /*
+   * Umumiy tekshiruvlar.
+   */
+  if (
+    !Array.isArray(students) ||
+    students.length === 0
+  ) {
+    return {
+      ok: false,
+      error: 'Kamida bitta o‘quvchi kiriting.',
+    };
+  }
+
+  if (students.length > 100) {
+    return {
+      ok: false,
+      error:
+        'Bir martada ko‘pi bilan 100 ta o‘quvchi qo‘shish mumkin.',
+    };
+  }
+
+  /*
+   * Supabase Service Role client.
+   *
+   * Bu serverda ishlaydi va Auth user yaratish
+   * huquqiga ega.
+   */
+  let admin: ReturnType<typeof createAdminClient>;
+
+  try {
+    admin = createAdminClient();
+  } catch (error) {
+    console.error(
+      'createAdminClient error:',
+      error
+    );
+
+    return {
+      ok: false,
+      error:
+        'SUPABASE_SERVICE_ROLE_KEY serverda sozlanmagan.',
+    };
+  }
+
+  let created = 0;
+
+  /*
+   * Har bir o‘quvchini yaratamiz.
+   */
+  for (const student of students) {
+    const name = text(student.name, 200);
+    const password = String(
+      student.password ?? ''
+    );
+
+    if (!name) {
+      return {
+        ok: false,
+        error:
+          'O‘quvchi ismi bo‘sh bo‘lishi mumkin emas.',
+      };
+    }
+
+    if (password.length < 6) {
+      return {
+        ok: false,
+        error:
+          `"${name}" uchun parol kamida 6 ta belgidan iborat bo‘lishi kerak.`,
+      };
+    }
+
+    /*
+     * Database uchun @username.
+     *
+     * Misol:
+     * @alivaliyev4821
+     */
+    const username = makeUsername(name);
+
+    /*
+     * Auth email uchun @ belgisi olib tashlanadi.
+     *
+     * @alivaliyev4821
+     *       ↓
+     * alivaliyev4821@users.learnflow.local
+     */
+    const technicalUsername =
+      username.replace(/^@/, '');
+
+    const email =
+      `${technicalUsername}@users.learnflow.local`;
+
+    /*
+     * Supabase Auth user yaratish.
+     */
+    const {
+      data: authData,
+      error: authError,
+    } =
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+
+        user_metadata: {
+          full_name: name,
+          username,
+        },
+      });
+
+    /*
+     * Auth user yaratishda xato.
+     */
+    if (
+      authError ||
+      !authData.user
+    ) {
+      console.error(
+        'Student auth create error:',
+        authError
+      );
+
+      return {
+        ok: false,
+        error:
+          authError?.message ||
+          `"${name}" uchun akkaunt yaratib bo‘lmadi.`,
+      };
+    }
+
+    const userId =
+      authData.user.id;
+
+    /*
+     * Trigger odatda profiles yaratadi.
+     *
+     * Lekin trigger mavjud bo‘lmasa ham
+     * yoki profile boshqa sabab bilan yaratilmasa,
+     * upsert orqali yaratamiz.
+     */
+    const {
+      error: profileError,
+    } = await admin
+      .from('profiles')
+      .upsert(
+        {
+          id: userId,
+          email,
+          username,
+          full_name: name,
+          role: 'student',
+        },
+        {
+          onConflict: 'id',
+        }
+      );
+
+    /*
+     * Profile yaratishda xato bo‘lsa,
+     * Auth userni ham o‘chirib tashlaymiz.
+     */
+    if (profileError) {
+      console.error(
+        'Student profile create error:',
+        profileError
+      );
+
+      try {
+        await admin.auth.admin.deleteUser(
+          userId
+        );
+      } catch (deleteError) {
+        console.error(
+          'Rollback delete error:',
+          deleteError
+        );
+      }
+
+      return {
+        ok: false,
+        error:
+          profileError.message ||
+          `"${name}" uchun profil yaratib bo‘lmadi.`,
+      };
+    }
+
+    created++;
+  }
+
+  /*
+   * Admin sahifalarini yangilash.
+   */
+  refresh();
+
+  return {
+    ok: true,
+    count: created,
+  };
 }

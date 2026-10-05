@@ -32,13 +32,13 @@ export function StudentActions({ id, name, role }: { id: string; name: string; r
 
   return (
     <div className="flex items-center justify-end gap-1">
-      <button
+      {/* <button
         onClick={change}
         disabled={busy}
         className="btn btn-ghost px-2 py-1 text-xs"
       >
         {role === 'admin' ? 'O‘quvchi qilish' : 'Admin qilish'}
-      </button>
+      </button> */}
 
       {role === 'student' && (
         <DeleteButton kind="student" id={id} name={name} iconOnly />

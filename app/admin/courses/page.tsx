@@ -26,7 +26,7 @@ export default async function AdminCourses() {
             <Link key={c.id} href={`/admin/courses/${c.id}`} className="card p-5 hover:border-teal-400">
               <div className="flex items-start justify-between gap-2">
                 <h3 className="font-semibold">{c.title}</h3>
-                <Badge tone={c.published ? 'green' : 'amber'}>{c.published ? 'Nashr qilingan' : 'Qoralama'}</Badge>
+                {/* <Badge tone={c.published ? 'green' : 'amber'}>{c.published ? 'Nashr qilingan' : 'Qoralama'}</Badge> */}
               </div>
               {c.description && <p className="mt-1 line-clamp-2 text-sm text-slate-600">{c.description}</p>}
               <p className="mt-3 text-sm text-slate-500">{total.get(c.id) ?? 0} Video</p>
