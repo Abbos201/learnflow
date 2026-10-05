@@ -28,10 +28,6 @@ export function StudentHeader({
             <div className="text-sm font-bold leading-none text-slate-950">
               Jaloliddin
             </div>
-
-            <div className="mt-1 text-[11px] font-medium text-slate-400">
-              Online ta&apos;lim
-            </div>
           </div>
         </Link>
 
@@ -64,7 +60,7 @@ export function StudentHeader({
         {/* Right side */}
         <div className="ml-auto flex items-center gap-2">
           <Link
-            href="/dashboard/settings"
+            href="/admin/settings"
             className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             title="Sozlamalar"
           >
@@ -77,10 +73,10 @@ export function StudentHeader({
             <div className="truncate text-sm font-semibold text-slate-800">
               {profile.full_name || 'O‘quvchi'}
             </div>
-
+{/* 
             <div className="truncate text-xs text-slate-400">
               {profile.username || ''}
-            </div>
+            </div> */}
           </div>
 
           <form action="/api/auth/logout" method="post">
