@@ -79,56 +79,6 @@ export default async function Home() {
 
 
 
-      {/* =========================
-          SIMPLE INFO
-      ========================== */}
-      <section className="border-b border-slate-200 bg-slate-50">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 py-8 sm:px-6 md:grid-cols-3 lg:px-8">
-
-          <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-              <PlayCircle className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900">
-                Video darslar
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Istalgan vaqtda ko‘ring
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900">
-                Jarayon nazorati
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Qayerda qolganingizni biling
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
-              <Users className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-semibold text-slate-900">
-                O‘quvchilar uchun
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Sodda va tushunarli tizim
-              </p>
-            </div>
-          </div>
-
-        </div>
-      </section>
 
       {/* =========================
           COURSES
