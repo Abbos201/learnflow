@@ -933,3 +933,227 @@ export async function createStudents(
     count: created,
   };
 }
+
+
+
+
+const COURSE_TESTS_BUCKET = 'course-tests';
+const MAX_TEST_PDF_BYTES = 20 * 1024 * 1024;
+
+export async function uploadCourseTest(
+  courseId: string,
+  formData: FormData
+) {
+  if (!(await adminOrNull())) {
+    return { ok: false as const, error: 'Ruxsat yo‘q.' };
+  }
+
+  if (!UUID.test(courseId)) {
+    return { ok: false as const, error: 'Mavzu topilmadi.' };
+  }
+
+  const title = String(formData.get('title') ?? '').trim();
+  const file = formData.get('file');
+
+  if (!title || title.length > 200) {
+    return { ok: false as const, error: 'Test nomini kiriting (200 belgigacha).' };
+  }
+
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false as const, error: 'PDF faylni tanlang.' };
+  }
+
+  if (
+    !file.name.toLowerCase().endsWith('.pdf') ||
+    file.type !== 'application/pdf'
+  ) {
+    return { ok: false as const, error: 'Faqat PDF fayl yuklash mumkin.' };
+  }
+
+  if (file.size > MAX_TEST_PDF_BYTES) {
+    return { ok: false as const, error: 'PDF hajmi 20 MB dan oshmasin.' };
+  }
+
+  const header = new Uint8Array(
+    await file.slice(0, 5).arrayBuffer()
+  );
+
+  if (String.fromCharCode(...header) !== '%PDF-') {
+    return { ok: false as const, error: 'Bu haqiqiy PDF fayl emas.' };
+  }
+
+  const supabase = createClient();
+  const { data: course, error: courseError } = await supabase
+    .from('courses')
+    .select('id')
+    .eq('id', courseId)
+    .maybeSingle();
+
+  if (courseError || !course) {
+    return { ok: false as const, error: 'Mavzu topilmadi.' };
+  }
+
+  const id = crypto.randomUUID();
+  const filePath = `${courseId}/${id}.pdf`;
+  const admin = createAdminClient();
+
+  const { error: uploadError } = await admin.storage
+    .from(COURSE_TESTS_BUCKET)
+    .upload(filePath, file, {
+      contentType: 'application/pdf',
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error('PDF upload error:', uploadError);
+    return { ok: false as const, error: 'PDF yuklanmadi.' };
+  }
+
+  const { error: insertError } = await admin
+    .from('course_tests')
+    .insert({
+      id,
+      course_id: courseId,
+      title,
+      file_path: filePath,
+    });
+
+  if (insertError) {
+    console.error('PDF database error:', insertError);
+    await admin.storage.from(COURSE_TESTS_BUCKET).remove([filePath]);
+    return { ok: false as const, error: 'Test bazaga saqlanmadi.' };
+  }
+
+  refresh();
+  return { ok: true as const };
+}
+
+export async function renameCourseTest(id: string, titleInput: string) {
+  if (!(await adminOrNull())) {
+    return { ok: false as const, error: 'Ruxsat yo‘q.' };
+  }
+
+  if (!UUID.test(id)) {
+    return { ok: false as const, error: 'Test topilmadi.' };
+  }
+
+  const title = titleInput.trim();
+
+  if (!title || title.length > 200) {
+    return { ok: false as const, error: 'Test nomini to‘g‘ri kiriting.' };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from('course_tests')
+    .update({ title })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Rename PDF error:', error);
+    return { ok: false as const, error: 'Test nomi o‘zgartirilmadi.' };
+  }
+
+  refresh();
+  return { ok: true as const };
+}
+
+export async function deleteCourseTest(id: string) {
+  if (!(await adminOrNull())) {
+    return { ok: false as const, error: 'Ruxsat yo‘q.' };
+  }
+
+  if (!UUID.test(id)) {
+    return { ok: false as const, error: 'Test topilmadi.' };
+  }
+
+  const admin = createAdminClient();
+  const { data: test, error: findError } = await admin
+    .from('course_tests')
+    .select('id, file_path')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (findError || !test) {
+    return { ok: false as const, error: 'Test topilmadi.' };
+  }
+
+  const { error: deleteError } = await admin
+    .from('course_tests')
+    .delete()
+    .eq('id', id);
+
+  if (deleteError) {
+    console.error('Delete PDF error:', deleteError);
+    return { ok: false as const, error: 'Test o‘chirilmadi.' };
+  }
+
+  const { error: storageError } = await admin.storage
+    .from(COURSE_TESTS_BUCKET)
+    .remove([test.file_path]);
+
+  if (storageError) {
+    console.error('Delete PDF file error:', storageError);
+  }
+
+  refresh();
+  return { ok: true as const };
+}
+
+export async function getCourseTests(courseId: string) {
+  const profile = await getCurrentProfile();
+
+  if (!profile || !UUID.test(courseId)) {
+    return { ok: false as const, tests: [] };
+  }
+
+  const supabase = createClient();
+  const { data: course } = await supabase
+    .from('courses')
+    .select('id, published')
+    .eq('id', courseId)
+    .maybeSingle();
+
+  if (
+    !course ||
+    (profile.role !== 'admin' && !course.published)
+  ) {
+    return { ok: false as const, tests: [] };
+  }
+
+  const admin = createAdminClient();
+  const { data: rows, error } = await admin
+    .from('course_tests')
+    .select('id, title, file_path')
+    .eq('course_id', courseId)
+    .order('created_at', { ascending: true });
+
+  if (error || !rows) {
+    console.error('Get course tests error:', error);
+    return { ok: false as const, tests: [] };
+  }
+
+  const results = await Promise.all(
+    rows.map(async (test) => {
+      const { data, error: urlError } = await admin.storage
+        .from(COURSE_TESTS_BUCKET)
+        .createSignedUrl(test.file_path, 600);
+
+      if (urlError || !data?.signedUrl) {
+        return null;
+      }
+
+      return {
+        id: test.id,
+        title: test.title,
+        url: data.signedUrl,
+      };
+    })
+  );
+
+  const tests = results.filter(
+    (test): test is NonNullable<typeof test> => test !== null
+  );
+
+  return { ok: true as const, tests };
+}
